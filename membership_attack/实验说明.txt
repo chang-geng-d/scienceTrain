@@ -1,0 +1,5 @@
+ex_1: dataset:mnist, shadow_model_num:5, model_mode:dense
+ex_2: dataset:mnist, shadow_model_num:5, model_mode:cnn
+ex_3: dataset:cifar10, shadow_model_num:1, model_mode:cnn
+ex_4: dataset:cifar10, shadow_model_num:50, model_mode:cnn
+ex_5: dataset:cifar10, shadow_model_num:50, model_mode:dense

@@ -1,0 +1,42 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+<title>机器学习隐私保护攻防系统</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<link href="/static/logstyle.css" rel="stylesheet" type="text/css" media="all" />
+</head>
+<body>
+	{% for message in get_flashed_messages() %}
+    	<div style="width: 100%;height: 50px;background-color:rgb(2, 162, 153);
+        text-align: center;line-height: 50px;color: white;font-size: 25px;
+        font-style: italic;z-index: 999;display: inline-block;">
+            {{ message }}
+        </div>
+    {% endfor %}
+	<!-- main -->
+	<div class="main"> 
+		<h1>机器学习隐私保护攻防系统</h1>
+		<div class="login-form"> 
+			<h2>登录</h2>
+			<form method="post">
+				<div class="agileits-top">
+					<div class="styled-input">
+						<input type="text" name="username" required=""/>
+						<label>用户名/管理员账户</label>
+						<span></span>
+					</div>
+					<div class="styled-input">
+						<input type="password" name="password" required=""> 
+						<label>密码</label>
+						<span></span>
+					</div>
+				</div>
+				<div class="agileits-bottom">
+					<input type="submit" value="登 录">
+				</div>
+			</form>
+		</div>	
+	</div>
+</body>
+</html>

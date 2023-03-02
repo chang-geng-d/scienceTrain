@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>机器学习隐私保护攻防系统</title>
+<link href="/static/css/bootstrap.css" rel="stylesheet">
+<link href="/static/css/style.css" rel="stylesheet">
+<link href="/static/css/responsive.css" rel="stylesheet">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+<script>
+    function userManage(btn){
+        uName=$("#uname_"+btn.id.slice(5)).val();
+        uPass=$("#pwd_"+btn.id.slice(5))[0];
+        method=btn.dataset.method
+        if(method=='update'){
+            $(uPass).removeAttr("readonly");
+            uPass.value='';
+            uPass.focus();
+            console.log(1);
+            $(uPass).keydown(function(e){
+                if(e.keyCode==13){
+                    if(!uPass.readOnly){
+                        postData(uName,uPass.value,method);
+                    }
+                    uPass.readOnly=true;
+                }
+            })
+        }
+        else{
+            postData(uName,uPass.value,method);
+        }
+    }
+    function postData(uName,uPass,method){
+        var uData={
+            'uName':uName,
+            'uPass':uPass,
+            'method':method
+        };
+        $.ajax({
+            type:'POST',
+            url:'/conn_chgUser',
+            data:uData,
+            success:function(){location.reload(true)},
+            error:function(){alert('请输入用户名或密码')}
+        });
+    }
+</script>
+</head>
+<body>
+<div class="page-wrapper default-version">
+    <div class="preloader"></div>
+    <div class="page-background">
+        <div class="image-1"><img src="/static/images/icons/shape/icon-1.png" alt=""></div>
+        <div class="image-7"><img src="/static/images/icons/shape/icon-7.png" alt=""></div>
+        <canvas id="canvas"></canvas>
+    </div>
+    <div class="card-outer">
+        <div class="scroll-box">
+            <div class="container" data-animation-in="fadeInLeft" data-animation-out="fadeOutLeft">
+                <div class="card-wrapper">
+                    <!-- 在选择功能模块后，在左方出现的用户头像与背景块 -->
+                    <div class="author-info" style="background-image:url(/static/images/background/3.png)">
+                        <div class="image"><img src="/static/images/resource/user.png" alt=""></div>
+                        <div class="author">
+                            <h3>欢迎!管理员{{username}}</h3>
+                            <div class="designation">
+                                We're
+                                <div class="typing-title">
+                                    <p>the <strong>Tp1t.</strong></p>
+                                </div>
+                                <span class="typed-title"></span>
+                            </div>
+                        </div>
+                        <!--底下的3个按钮，暂时无连接url-->
+                        <ul class="social-icon-two">
+                            <li><a href="#"><span class="fa fa-google-plus"></span></a></li>
+                            <li><a href="#"><span class="fa fa-github"></span></a></li>
+                            <li><a href="#"><span class="fa fa-envelope"></span></a></li>
+                        </ul>
+                    </div>
+                    <!--右方主界面，包括中部的功能选择栏以及右部的功能界面-->
+                    <div class="card-inner-box">
+                        <!--中部功能选择栏-->
+                        <header class="header wow fadeInLeft" data-wow-duration="1.5s">
+                            <ul class="main-menu">
+                                <li class="active home"><a class="logo" href="#home"><i class="flaticon-coding"></i></a></li>
+                                <li><a href="#about"><i class="flaticon-social"></i>用户管理</a></li>
+                                <li><a href="#blog"><i class="flaticon-blog"></i>日志管理</a></li>
+                            </ul>
+                        </header>
+                        <!--选项卡1，用户主界面-->
+                        <div class="card-home card-item active" id="home" style="background-image:url(/static/images/background/1.png)">
+                            <div class="card-inner wow fadeInUp" data-wow-duration="2s">
+                                <div class="image"><img src="/static/images/resource/user.png" alt=""></div>
+                                <div class="author">
+                                    <h3>欢迎!管理员{{username}}</h3>
+                                    <div class="designation">
+                                        We're
+                                        <div class="typing-title">
+                                            <p>the <strong>Tp1t.</strong></p>
+                                            <!-- <p>a <strong>photographer.</strong></p> -->
+                                        </div>
+                                        <span class="typed-title"></span>
+                                    </div>
+                                </div>
+                                <div class="text">机器学习隐私保护攻防系统</div>
+                                <div class="link-btn">
+                                    <a href="#" class="theme-btn btn-style-one">Getting Started</a>
+                                    <a href="/login" class="theme-btn btn-style-two">Exit</a>
+                                </div>
+                                <ul class="social-icon-two">
+                                    <li><a href="#"><span class="fa fa-google-plus"></span></a></li>
+                                    <li><a href="#"><span class="fa fa-github"></span></a></li>
+                                    <li><a href="#"><span class="fa fa-envelope"></span></a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <!--选项卡2，用户管理-->
+                        <div class="card-about card-item" id="about" style="background-image:url(/static/images/background/2.jpg)">
+                            <div class="card-inner">
+                                <h4 class="title">用户管理</h4>
+                                <div class="row"></div><hr>
+                                <div class="info-list">
+                                {% with %}
+                                {% for user in userlist %}
+                                    {% if user.isbad %}
+                                        {% set color='red' %}
+                                    {% else %}
+                                        {% set color='#222' %}
+                                    {% endif %}
+                                    <div class="row shadow-box">
+                                        <div class="col-md-4">
+                                            <div class="list-style-one" style="white-space: nowrap;">
+                                                <strong style="color: {{color}};">Name:</strong> 
+                                                <input id="uname_{{user.id}}" value="{{user.username}}" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="list-style-one" style="white-space: nowrap;">
+                                                <strong style="color: {{color}};">Password:</strong>
+                                                <input id="pwd_{{user.id}}" value="{{user.password}}" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4" style="text-align: right;">
+                                            <div class="list-style-one">
+                                                <i class="flaticon-edit" style="margin-right: 10%;" id="btn_u{{user.id}}"
+                                                    onclick="userManage(this)" data-method="update"></i>
+                                                <i class="flaticon-can" style="margin-right: 15%;" id="btn_d{{user.id}}" 
+                                                    onclick="userManage(this)" data-method="delete"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                                {% endwith %}
+                                    <div class="row shadow-box">
+                                        <div class="col-md-4">
+                                            <input type="text" id="uname_a" placeholder="Enter Name">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="text" id="pwd_a" placeholder="Enter Password">
+                                        </div>
+                                        <div class="col-md-4" style="text-align: right;">
+                                            <div class="list-style-one">
+                                                <i class="flaticon-businessman" style="margin-right: 25%;" id="btn_aa" 
+                                                    onclick="userManage(this)" data-method="insert"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!--日志记录模块-->
+                        <div class="card-blog card-item" id="blog" style="background-image:url(/static/images/background/2.jpg)">
+                            <div class="card-inner">
+                                <h4 class="title" style="margin-top: 10px;">日志管理</h4>
+                                {% for dic in dics %}
+                                <div class="news-block">
+                                    <div class="inner-box">
+                                        <div class="lower-content">
+                                            <div class="post-meta">{{dic.name}}</div>
+                                            <h4>{{dic.time}}</h4>
+                                            <div class="text">
+                                                <p>{{dic.log}}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script src="/static/js/jquery.js"></script>
+<script src="/static/js/bootstrap.min.js"></script>
+<script src="/static/js/jquery.mCustomScrollbar.concat.min.js"></script>
+<script src="/static/js/owl.js"></script>
+<script src="/static/js/wow.js"></script>
+<script src="/static/js/appear.js"></script>
+<script src="/static/js/jquery.fancybox.js"></script>
+<script src="/static/js/element-in-view.js"></script>
+<script src="/static/js/knob.js"></script>
+<script src="/static/js/validate.js"></script>
+<script src="/static/js/mousemoveparallax.js"></script>
+<script src="/static/js/pagenav.js"></script>
+<script src="/static/js/jquery-type.js"></script>
+<script src="/static/js/jquery.nicescroll.min.js"></script>
+<script src="/static/js/particle-alone.js"></script>
+<script src="/static/js/script.js"></script>
+</body>
+</html>
