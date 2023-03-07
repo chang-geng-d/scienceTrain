@@ -23,6 +23,7 @@ class LocalModel(object):
         self.discriminator = self.model
         # self.discriminator.summary()
         # optimizer = keras.optimizers.SGD(lr=0.1, momentum=0.9, decay=0.0, nesterov=False)
+        # TODO:改为传统mnist
         self.latent_dim = 100
         self.img_rows = 28
         self.img_cols = 28
@@ -33,6 +34,7 @@ class LocalModel(object):
                                    metrics=['accuracy'])
 
     def train(self, batch_size, req_id):
+        # TODO:改变训练集后需要检查
         # (X_train, y_train), (_, _) = mnist.load_data()
         pne_data = np.load('./DataSet/bloodmnist.npz')
         print(pne_data.files)
@@ -81,6 +83,7 @@ class FederatedClient(object):
     MAX_DATASET_SIZE_KEPT = 1200  # 训练的最大数据集大小？
 
     def __init__(self, server_host, server_port):
+        # TODO:存在冗余信息,可改
         self.local_model = None
         self.req_num = 1
         self.id = None
@@ -97,7 +100,7 @@ class FederatedClient(object):
         print("secret_key.lam:", self.sk.lam)
 
         # sm9
-        self.master_public, self.master_secret = sm9.setup('sign')
+        self.master_public, self.master_secret = sm9.setup('sign') #生成客户端的公私钥
 
         self.sio = SocketIO(server_host, server_port, LoggingNamespace)
         self.register_handles()
@@ -107,6 +110,9 @@ class FederatedClient(object):
         self.sio.wait()
 
     def on_init(self, *args):
+        '''
+        接收服务器发送的模型,初始化本地模型,并请求更新
+        '''
         self.t2 = time.time()
         f = open("expense.txt", "a")
         print(f"认证总用时:{self.t2 - self.t1}s", file=f)
@@ -122,6 +128,9 @@ class FederatedClient(object):
         })
 
     def on_authentication(self, *args):
+        '''
+        进行签名认证,并回发签名与公钥
+        '''
         req = args[0]
         self.id = req['id']
         self.num = req['num']
@@ -162,27 +171,39 @@ class FederatedClient(object):
         })
 
     def register_handles(self):
+        '''
+        注册客户机处理句柄
+        '''
         def req_train(*args):
+            '''
+            接收服务器ACK,重新回到ready状态等待服务器下一次更新请求
+            '''
             # time.sleep(2)
             # print('当前时间：',time.strftime('%H-%M-%S',time.localtime(time.time())))
             self.req_num += 1
             print('请求第' + str(self.req_num) + '次更新：')
             self.sio.emit('client_ready', {'req_num': self.req_num})
 
-        def on_connect():
+        def on_connect():   # debug用
             print('connect')
 
-        def on_disconnect():
+        def on_disconnect():    # debug用
             print('disconnect')
 
-        def on_reconnect():
+        def on_reconnect(): # debug用
             print('reconnect')
 
         def on_success(*args):
+            '''
+            接收服务器的成功消息,并回发模型拉取请求
+            '''
             print("签名认证成功...")
             self.sio.emit('client_connect')
 
         def on_request_update(*args):
+            '''
+            接收服务器传参,并对本地的模型进行一轮训练,回发本地模型权值
+            '''
             req = args[0]
             round_number1 = str(req['round_number'])
             print('总轮数：' + round_number1)
@@ -228,7 +249,7 @@ class FederatedClient(object):
             }
             print("加密完成，上传参数中...")
             self.sio.emit('client_update', resp)
-
+        # TODO:绑定风格不同,可改
         self.sio.on('next', req_train)
         self.sio.on('connect', on_connect)
         self.sio.on('disconnect', on_disconnect)
@@ -240,12 +261,19 @@ class FederatedClient(object):
 
 
 def obj_to_pickle_string(x):
+    '''
+    python对象转为2进制并序列化为base64
+    '''
     return codecs.encode(pickle.dumps(x), "base64").decode()
 
 
 def pickle_string_to_obj(s):
+    '''
+    从base64反序列化python对象
+    '''
     return pickle.loads(codecs.decode(s.encode(), "base64"))  # 模型返序列化loads，编解码en/decode
 
 
 if __name__ == "__main__":
+    # TODO:准备改为嵌入式
     client = FederatedClient("127.0.0.1", 5000)
