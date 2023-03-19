@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>机器学习隐私保护攻防系统</title>
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+    <link href="/static/css/responsive.css" rel="stylesheet">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <script>
+        var time;
+        function createElem(data){
+            return `<div class="news-block shadow-box">
+                        <div class="lower-content">
+                            <div class="text" style="white-space: pre-line;">${data}</div>
+                        </div>
+                    </div>`;
+        }
+        function log(){
+            clearTimeout(time);
+            var null_num=0;
+            time=setInterval(function(){
+                $.post('/conn_getLog',{
+                    'isAdmin':0,
+                    'sid':document.getElementById('sid').innerText
+                },function(data){
+                    var div=document.getElementById('log-list');
+                    div.innerHTML="<div class='card-inner' id='log-list'></div>";
+                    if(!data){
+                        ++null_num;
+                        if(null_num>=5){
+                            clearTimeout(time);
+                            console.log('日志记录结束')
+                        }
+                        return;
+                    }
+                    tElem=createElem(data);
+                    div.insertAdjacentHTML("beforeend",tElem);
+                    null_num=0;
+                });
+            },2000);
+        }
+        function manageFlClient(method){
+            console.log(method)
+            $.ajax({
+                url:'/conn_manageFl',
+                type:'POST',
+                data:{
+                    'isAdmin':0,
+                    'method':method,
+                    'sid':document.getElementById('sid').innerText
+                },
+                success:function(data){
+                    console.log(data);
+                    document.getElementById('cName').innerText=`客户端sid: ${data}`;
+                    if (method == 'start') {
+                        log();
+                        $('#swbox').val('stop');
+                    }
+                    else if(method=='stop'){
+                        clearTimeout(time);
+                        $('#swbox').val('start');
+                    }
+                    else{
+                        clearTimeout(time);
+                    }
+                }
+            })
+        }
+        window.addEventListener('beforeunload',function(){
+            manageFlClient('delete')
+        });
+    </script>
+</head>
+
+<body>
+    <div class="page-wrapper default-version">
+        <div class="preloader"></div>
+        <div class="page-background">
+            <canvas id="canvas"></canvas>
+        </div>
+        <div class="card-outer">
+            <div class="scroll-box">
+                <div class="container" data-animation-in="fadeInLeft" data-animation-out="fadeOutLeft">
+                    <div class="card-wrapper">
+                        <div class="card-inner-box">
+                            <!--上面依旧是外层的样子-->
+                            <div class="row" style="margin: 10px auto;display: flex;">
+                                <div class="col-md-4">
+                                    <h3 class="title" style="margin-left: 10px;">训练日志</h3>
+                                </div>
+                                <span id="sid" style="display: none;">{{sid}}</span>
+                                <div class="col-md-8" style="display:flex; justify-content:flex-start; align-items:center;">
+                                    <p id="cName">客户端未连接</p>
+                                </div>
+                                <div class="col-md-4 col-md-offset-4" style="display: flex;">
+                                    <div class="list-style-one"
+                                        style="width: 100%;display:flex; justify-content:flex-end; align-items:center;">
+                                        <label class="switch">
+                                            <input type="checkbox" id="swbox" value="start"
+                                                onclick="manageFlClient(this.value)">
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-blog card-trainLog-block">
+                                <div class="card-inner" id="log-list">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="/static/js/jquery.js"></script>
+
+    <script src="/static/js/bootstrap.min.js"></script>
+    <script src="/static/js/jquery.mCustomScrollbar.concat.min.js"></script>
+    <script src="/static/js/owl.js"></script>
+    <script src="/static/js/wow.js"></script>
+    <script src="/static/js/appear.js"></script>
+    <script src="/static/js/jquery.fancybox.js"></script>
+    <script src="/static/js/element-in-view.js"></script>
+    <script src="/static/js/knob.js"></script>
+    <script src="/static/js/validate.js"></script>
+    <script src="/static/js/mousemoveparallax.js"></script>
+    <script src="/static/js/pagenav.js"></script>
+    <script src="/static/js/jquery-type.js"></script>
+    <script src="/static/js/jquery.nicescroll.min.js"></script>
+    <script src="/static/js/particle-alone.js"></script>
+    <script src="/static/js/script.js"></script>
+</body>
+
+</html>

@@ -8,6 +8,7 @@ import socketio
 from BFV import bfv
 import key_generation
 from SM9.gmssl import sm9
+from logger import Logger
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 class LocalModel(object):
@@ -24,7 +25,6 @@ class LocalModel(object):
         '''
         训练一次
         '''
-        print('开始训练,当前模型id为: ',self.model_id)
         (x_train, y_train),(x_test, y_test) = mnist.load_data()
         # print('Train: ', x_train.shape, y_train.shape)
         # print('Test: ', x_test.shape, y_test.shape)
@@ -49,7 +49,7 @@ class LocalModel(object):
         self.discriminator.set_weights(new_weights)
 
 class FederatedClient(object):
-    def __init__(self,server_host, server_port):
+    def __init__(self, server_host, server_port):
         # 训练所用本地模型及轮数
         self.local_model=None
         self.round_num=0
@@ -62,6 +62,7 @@ class FederatedClient(object):
         self.master_public, self.master_secret = sm9.setup('sign')
 
         # 客户端参数
+        self.isConnected=False
         self.sio=socketio.Client()
         self.sHost=server_host
         self.sPort=server_port
@@ -69,21 +70,26 @@ class FederatedClient(object):
         self.regist_connect_handles()
         self.regist_update_handles()
 
+        self.userLog=None
+
     def regist_connect_handles(self):
         '''
         注册客户机处理句柄
         '''
         @self.sio.on('connect')
         def on_connect():   # debug用
-            print('connect')
+            # print('connect')
+            pass
 
         @self.sio.on('disconnect')
         def on_disconnect():    # debug用
-            print('disconnect')
+            # print('disconnect')
+            pass
 
         @self.sio.on('reconnect')
         def on_reconnect(): # debug用
-            print('reconnect')
+            # print('reconnect')
+            pass
 
         @self.sio.on('authentication')
         def on_authentication(data):
@@ -91,7 +97,8 @@ class FederatedClient(object):
             进行签名认证,并回发签名与公钥
             '''
             self.sid=data['id']
-            print('连接完成,开始签名...')
+            self.userLog=Logger('logs/fl_client',f'{self.sid}.log')
+            self.userLog.log.info('连接完成,开始签名...')
             # sm9签名认证
             # print(f"master_public:{self.master_public}")
             # print(f"master_secret:{self.master_secret}")
@@ -103,7 +110,7 @@ class FederatedClient(object):
             # print(f"message:{message}")
             signature = sm9.sign(self.master_public, Da, message)
             # print(f"signature:{signature}")
-            print("签名完成,发送签名进行认证...")
+            self.userLog.log.info("签名完成,发送签名进行认证...")
             self.sio.emit('signature', {
                 'signature': self.obj_to_pickle_string(signature),
                 'master_public': self.obj_to_pickle_string(self.master_public),
@@ -114,7 +121,7 @@ class FederatedClient(object):
             '''
             接收服务器的成功消息,并回发模型拉取请求
             '''
-            print("服务器端签名认证成功")
+            self.userLog.log.info("服务器端签名认证成功")
             self.sio.emit('client_ready')
 
         @self.sio.on('init')
@@ -122,7 +129,7 @@ class FederatedClient(object):
             '''
             接收服务器发送的模型,初始化本地模型,并请求更新
             '''
-            print('初始化模型: ', data['model_id'])
+            self.userLog.log.info(f"初始化模型:{data['model_id']}")
             self.local_model = LocalModel(data['model_id'],data['model_json'])
 
     def regist_update_handles(self):
@@ -143,6 +150,7 @@ class FederatedClient(object):
             #     print(f"weights:{weights}")
 
             self.local_model.set_weights(weights)
+            self.userLog.log.info(f'开始训练,当前模型id为: {self.local_model.model_id}')
             my_weights,_,_ = self.local_model.train()
 
             # print(f"weights:{my_weights}")
@@ -154,7 +162,7 @@ class FederatedClient(object):
                 'round_number': self.round_num,
                 'weights': self.obj_to_pickle_string(my_weights),
             })
-            print("上传参数完成")
+            self.userLog.log.info("上传参数完成")
 
         @self.sio.on('update_ack')
         def req_train():
@@ -163,13 +171,19 @@ class FederatedClient(object):
             '''
             # time.sleep(2)
             # print('当前时间：',time.strftime('%H-%M-%S',time.localtime(time.time())))
-            print(f'第{self.round_num}次更新完成')
+            self.userLog.log.info(f'第{self.round_num}次更新完成')
 
-    def start(self):
+    def run(self):
         self.sio.connect(f'http://{self.sHost}:{self.sPort}')
-        print("启动客户端并自动连接中...")
+        self.isConnected=True
         self.sio.emit('client_wake_up') # 自动连接
-        self.sio.wait()
+        # self.sio.wait()
+
+    def stop(self):
+        if self.isConnected:
+            self.sio.disconnect()
+            self.userLog=None
+            self.isConnected=False
 
     def obj_to_pickle_string(self,x):
         '''
@@ -183,9 +197,6 @@ class FederatedClient(object):
         '''
         return pickle.loads(codecs.decode(s.encode(), "base64"))  # 模型返序列化loads，编解码en/decode
 
-
-if __name__ == "__main__":
-    # TODO:准备改为嵌入式
-    client = FederatedClient("127.0.0.1", 5000)
-    client.start()
-    pass
+# if __name__ == "__main__":
+#     client = FederatedClient("127.0.0.1", 5000)
+#     client.start()

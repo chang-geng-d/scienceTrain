@@ -1,20 +1,16 @@
 # encoding:utf-8
-from flask import Blueprint, render_template, request, redirect,flash,make_response
-import random
-import time
-import subprocess
-import os
-import server as s
-import client as c
+from flask import *
+from server import FLServer as flServ
+from client import FederatedClient as flClie
 import json
 
 bp = Blueprint("admin", __name__)
-
+flServer:flServ=None
+flClients={}
 
 @bp.route('/')
 def _login():
     return redirect('/login')
-
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -78,6 +74,84 @@ def conn_chgUser():
         with open('configs/users.json','w') as f:
             json.dump(ulist,f)
     return 'ok',200
+
+@bp.route('/conn_getLog',methods=['GET','POST'])
+def conn_getLog():
+    if request.method=='POST':
+        data=request.form
+        if data['isAdmin']=='1':
+            logs={}
+            if flServer.serverLog:
+                logs['server']=flServer.serverLog.readLog()
+            else:
+                logs['server']='服务器已关闭'
+            for (sid,log) in flServer.userLogs.items():
+                logs[sid]=log.readLog()
+            return logs
+        if flClients[data['sid']].userLog:
+            return flClients[data['sid']].userLog.readLog()
+        return '错误: 无对应日志或服务器已关闭'
+
+@bp.route('/fl_server')
+def fl_server():
+    global flServer
+    if not flServer:
+        flServer=flServ('127.0.0.1',9000)
+        print('server 创建')
+    return render_template('fl_server.html')
+
+@bp.route('/fl_client')
+def fl_client():
+    global flClients
+    tClie=flClie('127.0.0.1',9000)
+    flClients[str(len(flClients))]=tClie
+    print('client 创建')
+    return render_template('fl_client.html',sid=len(flClients)-1)
+
+@bp.route('/conn_manageFl',methods=['GET','POST'])
+def conn_manageFl():
+    if request.method=='POST':
+        data=request.form
+        if data['isAdmin']=='1':
+            global flServer
+            if data['method']=='start':
+                print(flServer)
+                flServer.start()
+                print('server start')
+            elif data['method']=='stop':
+                print('enter stop')
+                flServer.stop()
+                flServer.delLog(True)
+                print('server stop')
+            elif data['method']=='delete':
+                print('enter delete')
+                flServer.stop()
+                flServer.delLog(False)
+                flServer=None
+                print('server deleted')
+        else:
+            global flClients
+            if data['method']=='start':
+                print('client start')
+                flClients[data['sid']].run()
+                print(f"client start sid:{data['sid']}")
+                while not flClients[data['sid']].sid:   #阻塞方式,网络不好时可能出问题
+                    pass
+                return str(flClients[data['sid']].sid),200
+            elif data['method']=='stop':
+                print('enter client stop')
+                flClients[data['sid']].stop()
+                print('client stop')
+            elif data['method']=='delete':
+                flClients[data['sid']].stop()
+                flClients.pop(data['sid'])
+                print('client deleted')
+        return '',200
+
+@bp.route('/temp',methods=['GET','POST'])
+def temp():
+    print('进入temp')
+    return ''
 
 @bp.route('/attack')
 def attack():
