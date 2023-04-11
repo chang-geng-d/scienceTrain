@@ -2,6 +2,8 @@ import os
 import keras
 import pickle
 import codecs
+import numpy as np
+import tensorflow as tf
 from keras.datasets import mnist
 from keras.models import model_from_json
 import socketio
@@ -9,44 +11,38 @@ from BFV import bfv
 import key_generation
 from SM9.gmssl import sm9
 from logger import Logger
+
+from gan_attack.gan import GAN
+
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
 class LocalModel(object):
     def __init__(self,model_id,model_config):
         self.model_id=model_id
-        self.model = model_from_json(model_config)
-        # self.model.summary()
-        self.discriminator=self.model
-        self.discriminator.compile(optimizer=keras.optimizers.Adam(learning_rate=0.005),
-                                   loss='sparse_categorical_crossentropy',
-                                   metrics=['accuracy'])
+        self.model=model_from_json(model_config)
+        self.model.compile(optimizer=keras.optimizers.Adam(0.0002, 0.5),loss='binary_crossentropy',metrics=['accuracy'])
 
     def train(self):
         '''
         训练一次
         '''
         (x_train, y_train),(x_test, y_test) = mnist.load_data()
-        # print('Train: ', x_train.shape, y_train.shape)
-        # print('Test: ', x_test.shape, y_test.shape)
-        x_train = x_train / 255.0
-        x_test = x_test / 255.0
-        # for j in range(8):
-        #     for i in range(len(y_val)):
-        #         if y_val[i] == j:
-        #             plt.imshow(x_val[i])
-        #             plt.show()
-        #             break
-        # w1 = self.discriminator.get_weights()[0]
-        # print(w1.shape)
-        self.discriminator.fit(x_train, y_train, epochs=1, batch_size=64, shuffle=True)
-        test = self.discriminator.evaluate(x_test, y_test, verbose=0)
-        return self.discriminator.get_weights(), test[0], test[1]
+        
+        train_pos=np.random.randint(0,x_train.shape[0],1024) #在保证运行效率同时保证攻击效果
+        x_train = x_train[train_pos] /127.5-1
+        x_test = x_test /127.5-1
+        y_train=tf.one_hot(indices=y_train[train_pos],depth=10,axis=1)
+        y_test=tf.one_hot(indices=y_test,depth=10,axis=1)
+
+        self.model.fit(x_train, y_train, epochs=5, batch_size=64, shuffle=True)
+        test = self.model.evaluate(x_test, y_test, verbose=0)
+        return self.model.get_weights(), test[0], test[1]
 
     def get_weights(self):
         return self.model.get_weights()
 
     def set_weights(self,new_weights):
-        self.discriminator.set_weights(new_weights)
+        self.model.set_weights(new_weights)
 
 class FederatedClient(object):
     def __init__(self, server_host, server_port):
@@ -71,6 +67,10 @@ class FederatedClient(object):
         self.regist_update_handles()
 
         self.userLog=None
+
+        #攻击
+        self.isBad=False
+        self.ganAttackModel=None
 
     def regist_connect_handles(self):
         '''
@@ -150,8 +150,13 @@ class FederatedClient(object):
             #     print(f"weights:{weights}")
 
             self.local_model.set_weights(weights)
-            self.userLog.log.info(f'开始训练,当前模型id为: {self.local_model.model_id}')
-            my_weights,_,_ = self.local_model.train()
+            if not self.isBad:
+                self.userLog.log.info(f'开始训练,当前模型id为: {self.local_model.model_id}')
+                my_weights,_,_ = self.local_model.train()
+            else:
+                self.userLog.log.info(f'开始攻击,当前模型id为: {self.local_model.model_id}')
+                self.gan_attack()
+                my_weights=self.local_model.get_weights()
 
             # print(f"weights:{my_weights}")
             # # 给参数加密
@@ -172,6 +177,15 @@ class FederatedClient(object):
             # time.sleep(2)
             # print('当前时间：',time.strftime('%H-%M-%S',time.localtime(time.time())))
             self.userLog.log.info(f'第{self.round_num}次更新完成')
+
+    def gan_attack(self):
+        if not self.local_model:
+            return
+        if not self.ganAttackModel:
+            self.ganAttackModel=GAN(self.local_model)
+        self.ganAttackModel.train(5,512)
+        self.ganAttackModel.trainDiscriminator(20,1024)
+        self.ganAttackModel.sample_images()
 
     def run(self):
         self.sio.connect(f'http://{self.sHost}:{self.sPort}')

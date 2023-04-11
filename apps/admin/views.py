@@ -28,6 +28,8 @@ def login():
                 else:
                     resp=make_response(redirect('/user'))
                 resp.set_cookie('uName',username,max_age=3600)
+                print(str(user['isbad']))
+                resp.set_cookie('isBad',str(user['isbad']),max_age=3600)
                 return resp
             else:
                 break
@@ -104,8 +106,11 @@ def fl_server():
 def fl_client():
     global flClients
     tClie=flClie('127.0.0.1',9000)
+    uName=request.cookies.get('uName')
+    isBad=request.cookies.get('isBad')
+    tClie.isBad=isBad=='True'
     flClients[str(len(flClients))]=tClie
-    print('client 创建')
+    print(f'client 创建,用户:{uName}\t攻击:{tClie.isBad}')
     return render_template('fl_client.html',sid=len(flClients)-1)
 
 @bp.route('/conn_manageFl',methods=['GET','POST'])

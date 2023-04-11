@@ -2,9 +2,9 @@ import os.path
 import keras.backend as K
 from keras.datasets import mnist
 from dp import add_noise
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
+from keras.utils import to_categorical
+from keras.models import Sequential, load_model
+from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
 
 
 def create_model():

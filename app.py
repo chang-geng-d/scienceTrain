@@ -1,8 +1,11 @@
 # encoding:utf-8
+import logging
 from flask import Flask
 from apps.admin.views import bp
 
 DEBUG = True
+log = logging.getLogger('werkzeug')
+log.disabled = True
 
 def create_app():
     app = Flask(__name__)

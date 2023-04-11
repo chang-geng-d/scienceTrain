@@ -11,6 +11,7 @@ from flask import *
 from flask_socketio import *
 from SM9.gmssl import sm9
 from logger import Logger
+import numpy as np
 
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
@@ -23,6 +24,10 @@ class GlobalModel(object):  #虚父类
 
     def build_model(self):
         pass
+
+    def clear_weights(self):
+        for i in range(len(self.current_weights)):
+            self.current_weights[i]=np.zeros(self.current_weights[i].shape)
 
     def update_weights(self, client_weights):
         '''
@@ -187,6 +192,8 @@ class FLServer(threading.Thread):
                 if not self.block_client_sids:
                     self.global_model.update_weights2(self.block_client_num)
                     self.serverLog.log.info(f'所有 {self.block_client_num} 个客户机更新完毕')
+                    if self.current_round<50:
+                        self.train_next_round()
 
     def train_next_round(self):
         '''
@@ -204,6 +211,7 @@ class FLServer(threading.Thread):
         self.block_client_sids=self.ready_client_sids.copy()
         self.block_client_num=len(self.block_client_sids)
         self.ready_client_sids.clear()
+        self.global_model.clear_weights()
 
     def run(self):
         if not self.isRunning:
