@@ -36,9 +36,9 @@ class GlobalModel(object):  #虚父类
         for i in range(len(client_weights)):
             self.current_weights[i]+=client_weights[i]
     
-    def update_weights2(self,clientNum):
-        for i in range(len(self.current_weights)):
-            self.current_weights[i]=self.current_weights[i]/clientNum
+    def update_weights2(self):#,clientNum):    #为兼容加法同态加密，将平均放至客户本地中进行
+        # for i in range(len(self.current_weights)):
+        #     self.current_weights[i]=self.current_weights[i]/clientNum
         self.model.set_weights(self.current_weights)
 
 
@@ -98,6 +98,8 @@ class FLServer(threading.Thread):
 
         self.serverLog=Logger('logs/fl_server','server.log')
         self.userLogs={}
+
+        self.method='none'
 
         self.serverLog.log.info(f'当前全局模型uuid: {self.model_id}')
 
@@ -190,7 +192,7 @@ class FLServer(threading.Thread):
                 self.ready_client_sids.add(request.sid)
                 self.block_client_sids.discard(request.sid)
                 if not self.block_client_sids:
-                    self.global_model.update_weights2(self.block_client_num)
+                    self.global_model.update_weights2()
                     self.serverLog.log.info(f'所有 {self.block_client_num} 个客户机更新完毕')
                     if self.current_round<50:
                         self.train_next_round()
@@ -206,7 +208,8 @@ class FLServer(threading.Thread):
         emit('request_update',{
             'model_id': self.model_id,
             'round_number': self.current_round,
-            'current_weights': self.obj_to_pickle_string(self.global_model.current_weights)
+            'current_weights': self.obj_to_pickle_string(self.global_model.current_weights),
+            'client_num':len(self.ready_client_sids)
         },broadcast=True)
         self.block_client_sids=self.ready_client_sids.copy()
         self.block_client_num=len(self.block_client_sids)

@@ -13,6 +13,7 @@ from SM9.gmssl import sm9
 from logger import Logger
 
 from gan_attack.gan import GAN
+from phe import paillier
 
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
@@ -68,9 +69,13 @@ class FederatedClient(object):
 
         self.userLog=None
 
-        #攻击
         self.isBad=False
+        self.method='none'
+        # 攻击
         self.ganAttackModel=None
+
+        # 防御
+        # self.pubKey,self.priKey=paillier.generate_paillier_keypair()
 
     def regist_connect_handles(self):
         '''
@@ -141,6 +146,7 @@ class FederatedClient(object):
             '''
             self.round_num=data['round_number']
             weights=self.pickle_string_to_obj(data['current_weights'])
+            cNum=data['client_num']
 
             # 初始训练参数不需要解密
             # if data['round_number'] != 1:
@@ -151,12 +157,17 @@ class FederatedClient(object):
 
             self.local_model.set_weights(weights)
             if not self.isBad:
-                self.userLog.log.info(f'开始训练,当前模型id为: {self.local_model.model_id}')
-                my_weights,_,_ = self.local_model.train()
+                if self.method=='none':
+                    self.userLog.log.info(f'开始训练,当前模型id为: {self.local_model.model_id}')
+                    my_weights,_,_ = self.local_model.train()
             else:
-                self.userLog.log.info(f'开始攻击,当前模型id为: {self.local_model.model_id}')
-                self.gan_attack()
-                my_weights=self.local_model.get_weights()
+                if self.method=='gan':
+                    self.userLog.log.info(f'开始攻击,当前模型id为: {self.local_model.model_id}')
+                    self.gan_attack(self.round_num)
+                    my_weights=self.local_model.get_weights()
+
+            for i in range(len(my_weights)):
+                my_weights[i]=np.array([x/cNum for x in my_weights[i]])
 
             # print(f"weights:{my_weights}")
             # # 给参数加密
@@ -178,14 +189,15 @@ class FederatedClient(object):
             # print('当前时间：',time.strftime('%H-%M-%S',time.localtime(time.time())))
             self.userLog.log.info(f'第{self.round_num}次更新完成')
 
-    def gan_attack(self):
+    def gan_attack(self,cRound):
         if not self.local_model:
             return
         if not self.ganAttackModel:
             self.ganAttackModel=GAN(self.local_model)
         self.ganAttackModel.train(5,512)
         self.ganAttackModel.trainDiscriminator(20,1024)
-        self.ganAttackModel.sample_images()
+        if cRound%25==0:
+            self.ganAttackModel.sample_images(cRound)
 
     def run(self):
         self.sio.connect(f'http://{self.sHost}:{self.sPort}')

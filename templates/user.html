@@ -51,8 +51,7 @@
                                 <ul class="main-menu">
                                     <li class="active home"><a class="logo" href="#home"><i
                                                 class="flaticon-coding"></i></a></li>
-                                    <li><a href="#services"><i class="flaticon-layers-1"></i>攻击训练</a></li>
-                                    <li><a href="#blog"><i class="flaticon-blog"></i>防御选择</a></li>
+                                    <li><a href="#services"><i class="flaticon-layers-1"></i>训练选择</a></li>
                                     <li><a href="#contact"><i class="flaticon-send-mail"></i>联系我们</a></li>
                                     <!-- <li><a href="#person"><i class="flaticon-cogwheel"></i>个人中心</a></li> -->
                                 </ul>
@@ -95,7 +94,7 @@
                                         <div class="services-block col-md-6">
                                             <div class="inner-box">
                                                 <div class="icon-box"><span class="icon flaticon-drawing"></span></div>
-                                                <h4><a href="#" id="atk">开始训练</a></h4><!--临时链接-->
+                                                <h4><a href="#" id="start_fl">开始训练</a></h4><!--临时链接-->
                                                 <div class="text">开始进行机器学习模型训练</div>
                                             </div>
                                         </div>
@@ -113,6 +112,7 @@
                                             </div>
                                         </div>
                                         <!--攻击方式选择选项块-->
+                                        {% if isBad %}
                                         <div class="services-block col-md-6">
                                             <div class="inner-box">
                                                 <div class="icon-box"><span class="icon flaticon-web-design"></span>
@@ -121,20 +121,42 @@
                                                         onchange="chgAtk()" id="sel_atk">
                                                         <option selected>选择攻击方式</option>
                                                         <option value="PPA">PPA</option>
-                                                        <option value="GAN">GAN</option>
-                                                        <option value="attack">membership</option>
+                                                        <option value="gan">GAN</option>
+                                                        <option value="membership">membership</option>
                                                     </select></h4>
                                                 <script>//重定向训练选项的链接地址为“sel_atk”中的value值,完成不同方式的分流
                                                     function chgAtk() {
-                                                        var target = document.getElementById("atk");
+                                                        var target = document.getElementById("start_fl");
                                                         var sel = document.getElementById("sel_atk");
                                                         var sid = sel.selectedIndex;
-                                                        target.href = '/' + sel[sid].value;
+                                                        target.href = '/fl_client/' + sel[sid].value;
                                                     }//相关文件为ppa.html; gan.html; attack.html
                                                 </script>
                                                 <div class="text">选择攻击方式</div>
                                             </div>
                                         </div>
+                                        {% else %}
+                                        <div class="services-block col-md-6">
+                                            <div class="inner-box">
+                                                <div class="icon-box"><span class="icon flaticon-web-design"></span></div>
+                                                <h4><select style="color: black;background-color: white;"
+                                                        onchange="chgDefe()" id="sel_defe">
+                                                        <option selected>选择防御方式</option>
+                                                        <option value="none">无防御</option>
+                                                        <option value="homomorphic">同态加密</option>
+                                                    </select></h4>
+                                                <script>//重定向训练选项的链接地址为“sel_defe”中的value值,完成不同方式的分流
+                                                    function chgDefe() {
+                                                        var target = document.getElementById("start_fl");
+                                                        var sel = document.getElementById("sel_defe");
+                                                        var sid = sel.selectedIndex;
+                                                        target.href = '/fl_client/' + sel[sid].value;
+                                                    }//相关文件为homomorphic.html
+                                                </script>
+                                                <div class="text">选择防御方式</div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
                                         <!--训练方式选择选项块-->
                                         <div class="services-block col-md-6">
                                             <div class="inner-box">
@@ -142,91 +164,12 @@
                                                 </div>
                                                 <h4><select style="color: black;background-color: white;">
                                                         <option>选择训练方式</option>
-                                                        <option value="lianhe" selected>联合学习</option>
-                                                        <option value="lianbang">联邦学习</option>
+                                                        <option value="lianhe">联合学习</option>
+                                                        <option value="lianbang" selected>联邦学习</option>
                                                         <option value="fenge">分割学习</option>
                                                     </select></h4>
                                                 <div class="text">选择训练方式</div>
                                             </div>
-                                        </div>
-                                        <!--效果展示选项块-->
-                                        <div class="services-block col-md-6">
-                                            <div class="inner-box">
-                                                <div class="icon-box"><span class="icon flaticon-computer"></span></div>
-                                                <!--<h4><a href="javascript:void(0)" id="train">攻击效果展示</a></h4>-->
-                                                <h4><a href="#" id="train">攻击效果展示</a></h4><!--TODO:等待补充-->
-                                                <div class="text">开始分析模型训练结果</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <!--选项卡3，防御项目-->
-                            <div class="card-blog card-item" id="blog"
-                                style="background-image:url(/static/images/background/2.jpg)">
-                                <div class="card-inner">
-                                    <h4 class="title" style="margin-top: 10px;">防御模型训练</h4>
-                                    <!--开始训练选项块-->
-                                    <div class="services-block col-md-6">
-                                        <div class="inner-box">
-                                            <div class="icon-box"><span class="icon flaticon-drawing"></span></div>
-                                            <h4><a href="#" id="defe">开始训练</a></h4><!--临时链接-->
-                                            <div class="text">开始进行机器学习模型训练</div>
-                                        </div>
-                                    </div>
-                                    <!--数据集选择选项块-->
-                                    <div class="services-block col-md-6">
-                                        <div class="inner-box">
-                                            <div class="icon-box"><span class="icon flaticon-layers-1"></span></div>
-                                            <h4><select style="color: black;background-color: white;">
-                                                    <option>选择本地数据集</option>
-                                                    <option value="MNIST" selected>MNIST</option>
-                                                    <option value="MNIST">CIFAR-10</option>
-                                                    <option value="MNIST">GTSRB</option>
-                                                </select></h4>
-                                            <div class="text">选择将要在本地进行训练的数据集</div>
-                                        </div>
-                                    </div>
-                                    <!--防御方式选择选项块-->
-                                    <div class="services-block col-md-6">
-                                        <div class="inner-box">
-                                            <div class="icon-box"><span class="icon flaticon-web-design"></span></div>
-                                            <h4><select style="color: black;background-color: white;"
-                                                    onchange="chgDefe()" id="sel_defe">
-                                                    <option selected>选择防御方式</option>
-                                                    <option value="homomorphic">同态加密</option>
-                                                </select></h4>
-                                            <script>//重定向训练选项的链接地址为“sel_defe”中的value值,完成不同方式的分流
-                                                function chgDefe() {
-                                                    var target = document.getElementById("defe");
-                                                    var sel = document.getElementById("sel_defe");
-                                                    var sid = sel.selectedIndex;
-                                                    target.href = '/' + sel[sid].value;
-                                                }//相关文件为homomorphic.html
-                                            </script>
-                                            <div class="text">选择防御方式</div>
-                                        </div>
-                                    </div>
-                                    <!--训练方式选择选项块-->
-                                    <div class="services-block col-md-6">
-                                        <div class="inner-box">
-                                            <div class="icon-box"><span class="icon flaticon-web-design"></span></div>
-                                            <h4><select style="color: black;background-color: white;">
-                                                    <option>选择训练方式</option>
-                                                    <option value="lianhe" selected>联合学习</option>
-                                                    <option value="lianbang">联邦学习</option>
-                                                    <option value="fenge">分割学习</option>
-                                                </select></h4>
-                                            <div class="text">选择训练方式</div>
-                                        </div>
-                                    </div>
-                                    <!--效果展示选项块-->
-                                    <div class="services-block col-md-6">
-                                        <div class="inner-box">
-                                            <div class="icon-box"><span class="icon flaticon-computer"></span></div>
-                                            <!--<h4><a href="javascript:void(0)" id="train">攻击/防御效果展示</a></h4>-->
-                                            <h4><a href="#" id="train">防御效果展示</a></h4><!--TODO:等待补充-->
-                                            <div class="text">开始分析模型训练结果</div>
                                         </div>
                                     </div>
                                 </div>

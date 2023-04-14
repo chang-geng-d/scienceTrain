@@ -63,16 +63,17 @@
                     else if (method == 'stop'){
                         clearTimeout(time);
                         $('#swbox').val('start');
+                        window.location.replace("/manage")
                     }
-                    else{
-                        clearTimeout(time);
-                    }
+                    // else{
+                    //     clearTimeout(time);
+                    // }
                 }
             })
         }
-        window.addEventListener('beforeunload', function(){
-            manageFlServer('delete')
-        });
+        // window.addEventListener('beforeunload', function(){
+        //     manageFlServer('delete')
+        // });
     </script>
 </head>
 

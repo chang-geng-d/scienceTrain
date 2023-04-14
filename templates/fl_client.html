@@ -62,16 +62,25 @@
                     else if(method=='stop'){
                         clearTimeout(time);
                         $('#swbox').val('start');
+                        isBad=document.getElementById('isBad').innerText=='True';
+                        if(isBad){
+                            url=window.location.pathname;
+                            url=url.substring(url.lastIndexOf('/'),url.length);
+                            window.location.replace('/fl_result'+url);
+                        }
+                        else{
+                            window.location.replace('/user');
+                        }
                     }
-                    else{
-                        clearTimeout(time);
-                    }
+                    // else{
+                    //     clearTimeout(time);
+                    // }
                 }
             })
         }
-        window.addEventListener('beforeunload',function(){
-            manageFlClient('delete')
-        });
+        // window.addEventListener('beforeunload',function(){
+        //     manageFlClient('delete')
+        // });
     </script>
 </head>
 
@@ -92,6 +101,7 @@
                                     <h3 class="title" style="margin-left: 10px;">训练日志</h3>
                                 </div>
                                 <span id="sid" style="display: none;">{{sid}}</span>
+                                <span id="isBad" style="display: none;">{{isBad}}</span>
                                 <div class="col-md-8" style="display:flex; justify-content:flex-start; align-items:center;">
                                     <p id="cName">客户端未连接</p>
                                 </div>

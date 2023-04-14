@@ -8,7 +8,6 @@ from keras.models import Sequential, Model
 from keras.optimizers import Adam
 import matplotlib.pyplot as plt
 import numpy as np
-import time
 
 # class LocalModel:
 #     '''
@@ -128,7 +127,7 @@ class GAN:
 
         # self.generator.save_weights('gan_attack/models/generator.h5')
 
-    def sample_images(self):
+    def sample_images(self,cRound):
         '''
         保存该次输出的图片
         '''
@@ -144,7 +143,7 @@ class GAN:
             for j in range(c):
                 axs[i, j].imshow(gen_imgs[i*5+j, :, :, 0], cmap='gray')
                 axs[i, j].axis('off')
-        fig.savefig(f"gan_attack/images/{int(time.time())}.png")
+        fig.savefig(f"static/images/gan_imgs/{cRound}.png")
         plt.close()
 
 

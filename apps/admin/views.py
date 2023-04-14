@@ -1,4 +1,5 @@
 # encoding:utf-8
+import os
 from flask import *
 from server import FLServer as flServ
 from client import FederatedClient as flClie
@@ -48,7 +49,8 @@ def manage():
 @bp.route('/user')
 def user():
     uName=request.cookies.get('uName')
-    return render_template('user.html',username=uName)
+    isBad=request.cookies.get('isBad')=='True'
+    return render_template('user.html',username=uName,isBad=isBad)
 
 @bp.route('/conn_chgUser',methods=['POST'])
 def conn_chgUser():
@@ -94,24 +96,26 @@ def conn_getLog():
             return flClients[data['sid']].userLog.readLog()
         return '错误: 无对应日志或服务器已关闭'
 
-@bp.route('/fl_server')
-def fl_server():
+@bp.route('/fl_server/<method>')
+def fl_server(method):
     global flServer
     if not flServer:
         flServer=flServ('127.0.0.1',9000)
+        flServer.method=method
         print('server 创建')
     return render_template('fl_server.html')
 
-@bp.route('/fl_client')
-def fl_client():
+@bp.route('/fl_client/<method>')
+def fl_client(method):
     global flClients
     tClie=flClie('127.0.0.1',9000)
     uName=request.cookies.get('uName')
     isBad=request.cookies.get('isBad')
     tClie.isBad=isBad=='True'
+    tClie.method=method
     flClients[str(len(flClients))]=tClie
     print(f'client 创建,用户:{uName}\t攻击:{tClie.isBad}')
-    return render_template('fl_client.html',sid=len(flClients)-1)
+    return render_template('fl_client.html',sid=len(flClients)-1,isBad=tClie.isBad)
 
 @bp.route('/conn_manageFl',methods=['GET','POST'])
 def conn_manageFl():
@@ -126,14 +130,15 @@ def conn_manageFl():
             elif data['method']=='stop':
                 print('enter stop')
                 flServer.stop()
-                flServer.delLog(True)
-                print('server stop')
-            elif data['method']=='delete':
-                print('enter delete')
-                flServer.stop()
                 flServer.delLog(False)
                 flServer=None
-                print('server deleted')
+                print('server stop')
+            # elif data['method']=='delete':
+            #     print('enter delete')
+            #     flServer.stop()
+            #     flServer.delLog(False)
+            #     flServer=None
+            #     print('server deleted')
         else:
             global flClients
             if data['method']=='start':
@@ -146,17 +151,13 @@ def conn_manageFl():
             elif data['method']=='stop':
                 print('enter client stop')
                 flClients[data['sid']].stop()
-                print('client stop')
-            elif data['method']=='delete':
-                flClients[data['sid']].stop()
                 flClients.pop(data['sid'])
-                print('client deleted')
+                print('client stop')
+            # elif data['method']=='delete':
+            #     flClients[data['sid']].stop()
+            #     flClients.pop(data['sid'])
+            #     print('client deleted')
         return '',200
-
-@bp.route('/temp',methods=['GET','POST'])
-def temp():
-    print('进入temp')
-    return ''
 
 @bp.route('/attack')
 def attack():
@@ -190,21 +191,23 @@ def ppa_result():
 def ppa_graph():
     return render_template('ppa_graph.html')
 
-@bp.route('/GAN')
-def gan():
-    # p = subprocess.Popen('python3 ./gan_attack/gan.py', shell=True)
-    return render_template('gan.html')
+# @bp.route('/GAN')
+# def gan():
+#     # p = subprocess.Popen('python3 ./gan_attack/gan.py', shell=True)
+#     return render_template('gan.html')
 
-@bp.route('/gan_result')
-def gan_result():
-    with open('gan_attack/log.txt', encoding='utf-8') as file_obj:
-        contents = file_obj.read()
-        print(contents.rstrip())
-    return render_template('gan_result.html',result = contents.rstrip())
+# @bp.route('/gan_result')
+# def gan_result():
+#     with open('gan_attack/log.txt', encoding='utf-8') as file_obj:
+#         contents = file_obj.read()
+#         print(contents.rstrip())
+#     return render_template('gan_result.html',result = contents.rstrip())
 
-@bp.route('/gan_graph')
+@bp.route('/fl_result/gan')
 def gan_graph():
-    return render_template('gan_graph.html')
+    picPaths=os.listdir('static/images/gan_imgs')
+    picPaths.sort(key=lambda x:int(x.split('.')[0]))
+    return render_template('gan_graph.html',picPaths=picPaths)
 
 @bp.route('/homomorphic')
 def homomorphic():
