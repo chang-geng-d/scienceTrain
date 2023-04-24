@@ -5,6 +5,9 @@ import keras
 import codecs
 import pickle
 import threading
+import tensorflow as tf
+import matplotlib.pyplot as plt
+from keras.datasets import mnist
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten, Activation, Convolution2D, MaxPooling2D
 from flask import *
@@ -26,8 +29,7 @@ class GlobalModel(object):  #虚父类
         pass
 
     def clear_weights(self):
-        for i in range(len(self.current_weights)):
-            self.current_weights[i]=np.zeros(self.current_weights[i].shape)
+        self.current_weights=[np.zeros(wei.shape) for wei in self.current_weights]
 
     def update_weights(self, client_weights):
         '''
@@ -48,6 +50,9 @@ class GlobalModel_MNIST_CNN(GlobalModel):
     '''
     def __init__(self):
         super(GlobalModel_MNIST_CNN, self).__init__()
+        self.model.compile(optimizer=keras.optimizers.Adam(0.0002, 0.5),
+                        loss='binary_crossentropy',
+                        metrics=['accuracy'])
 
     def build_model(self):
         '''
@@ -71,9 +76,9 @@ class GlobalModel_MNIST_CNN(GlobalModel):
         model.add(Activation('softmax'))
         # model.summary()
 
-        model.compile(optimizer=keras.optimizers.Adam(learning_rate=0.005),
-                        loss='sparse_categorical_crossentropy',
-                        metrics=['accuracy'])
+        # model.compile(optimizer=keras.optimizers.Adam(0.0002, 0.5),
+        #                 loss='binary_crossentropy',
+        #                 metrics=['accuracy'])
         return model
 
 
@@ -102,6 +107,7 @@ class FLServer(threading.Thread):
         self.method='none'
 
         self.serverLog.log.info(f'当前全局模型uuid: {self.model_id}')
+        self.evaluatedAcc=[]
 
         self.setDaemon(True)
 
@@ -195,7 +201,10 @@ class FLServer(threading.Thread):
                     self.global_model.update_weights2()
                     self.serverLog.log.info(f'所有 {self.block_client_num} 个客户机更新完毕')
                     if self.current_round<50:
+                        self.evaluate_acc()
                         self.train_next_round()
+                    else:
+                        self.draw_accImg()
 
     def train_next_round(self):
         '''
@@ -245,6 +254,18 @@ class FLServer(threading.Thread):
         从base64反序列化python对象
         '''
         return pickle.loads(codecs.decode(s.encode(), "base64"))
+    
+    def evaluate_acc(self):
+        (_,_),(testX,testY)=mnist.load_data()
+        testX=testX/127.5-1
+        testY=tf.one_hot(indices=testY,depth=10,axis=1)
+        _,acc=self.global_model.model.evaluate(testX,testY,batch_size=32)
+        self.evaluatedAcc.append(acc)
+
+    def draw_accImg(self):
+        plt.figure()
+        plt.plot(range(1,50),self.evaluatedAcc)
+        plt.savefig('static/images/evaluate_img/acc_0.7.png')
 
 # if __name__ == '__main__':
 #     server=FLServer('127.0.0.1',9000)

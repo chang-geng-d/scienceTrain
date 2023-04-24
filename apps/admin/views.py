@@ -107,15 +107,25 @@ def fl_server(method):
 
 @bp.route('/fl_client/<method>')
 def fl_client(method):
-    global flClients
-    tClie=flClie('127.0.0.1',9000)
-    uName=request.cookies.get('uName')
-    isBad=request.cookies.get('isBad')
-    tClie.isBad=isBad=='True'
-    tClie.method=method
-    flClients[str(len(flClients))]=tClie
-    print(f'client 创建,用户:{uName}\t攻击:{tClie.isBad}')
-    return render_template('fl_client.html',sid=len(flClients)-1,isBad=tClie.isBad)
+    if method in ['none','gan','diffPri']:
+        global flClients
+        tClie=flClie('127.0.0.1',9000)
+        uName=request.cookies.get('uName')
+        isBad=request.cookies.get('isBad')
+        tClie.isBad=isBad=='True'
+        tClie.method=method
+        flClients[str(len(flClients))]=tClie
+        print(f'client 创建,用户:{uName}\t攻击:{tClie.isBad}')
+        return render_template('fl_client.html',sid=len(flClients)-1,isBad=tClie.isBad)
+    elif method=='membership':
+        # p = subprocess.Popen('python3 ./membership_attack/membership.py', shell=True)
+        return render_template('attack.html')
+    elif method=='PPA':
+        # p = subprocess.Popen('python3 ./PPA_attack/Meta-Classifier/cifar10/Meta-Classifier/train_model.py', shell=True)
+        return render_template('ppa.html')
+    elif method=='homomorphic':
+        # p = subprocess.Popen('python3 ./Homomorphic_Encryption/Paillier/encrypt.py', shell=True)
+        return render_template('homomorphic.html')
 
 @bp.route('/conn_manageFl',methods=['GET','POST'])
 def conn_manageFl():
@@ -159,11 +169,6 @@ def conn_manageFl():
             #     print('client deleted')
         return '',200
 
-@bp.route('/attack')
-def attack():
-    # p = subprocess.Popen('python3 ./membership_attack/membership.py', shell=True)
-    return render_template('attack.html')
-
 @bp.route('/result')
 def result():
     with open('membership_attack/log.txt', encoding='utf-8') as file_obj:
@@ -174,11 +179,6 @@ def result():
 @bp.route('/mem_graph')
 def mem_graph():
     return render_template('mem_graph.html')
-
-@bp.route('/PPA')
-def ppa():
-    # p = subprocess.Popen('python3 ./PPA_attack/Meta-Classifier/cifar10/Meta-Classifier/train_model.py', shell=True)
-    return render_template('ppa.html')
 
 @bp.route('/ppa_result')
 def ppa_result():
@@ -208,11 +208,6 @@ def gan_graph():
     picPaths=os.listdir('static/images/gan_imgs')
     picPaths.sort(key=lambda x:int(x.split('.')[0]))
     return render_template('gan_graph.html',picPaths=picPaths)
-
-@bp.route('/homomorphic')
-def homomorphic():
-    # p = subprocess.Popen('python3 ./Homomorphic_Encryption/Paillier/encrypt.py', shell=True)
-    return render_template('homomorphic.html')
 
 @bp.route('/homo_result')
 def homo_result():

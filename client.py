@@ -4,6 +4,9 @@ import pickle
 import codecs
 import numpy as np
 import tensorflow as tf
+from keras import losses
+from keras import metrics
+from keras import optimizers
 from keras.datasets import mnist
 from keras.models import model_from_json
 import socketio
@@ -13,7 +16,6 @@ from SM9.gmssl import sm9
 from logger import Logger
 
 from gan_attack.gan import GAN
-from phe import paillier
 
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
@@ -21,23 +23,48 @@ class LocalModel(object):
     def __init__(self,model_id,model_config):
         self.model_id=model_id
         self.model=model_from_json(model_config)
-        self.model.compile(optimizer=keras.optimizers.Adam(0.0002, 0.5),loss='binary_crossentropy',metrics=['accuracy'])
+        self.loss=losses.binary_crossentropy
+        self.metric=metrics.Accuracy()
+        self.model.compile(optimizer=optimizers.Adam(0.0002, 0.5),loss=self.loss,metrics=['accuracy'])
 
     def train(self):
         '''
-        训练一次
+        训练五次
         '''
         (x_train, y_train),(x_test, y_test) = mnist.load_data()
         
         train_pos=np.random.randint(0,x_train.shape[0],1024) #在保证运行效率同时保证攻击效果
         x_train = x_train[train_pos] /127.5-1
         x_test = x_test /127.5-1
-        y_train=tf.one_hot(indices=y_train[train_pos],depth=10,axis=1)
-        y_test=tf.one_hot(indices=y_test,depth=10,axis=1)
+        y_train=tf.one_hot(indices=y_train[train_pos],depth=10,axis=1).numpy()
+        y_test=tf.one_hot(indices=y_test,depth=10,axis=1).numpy()
 
         self.model.fit(x_train, y_train, epochs=5, batch_size=64, shuffle=True)
-        test = self.model.evaluate(x_test, y_test, verbose=0)
-        return self.model.get_weights(), test[0], test[1]
+        # test = self.model.evaluate(x_test, y_test, verbose=0)
+        return self.model.get_weights()#, test[0], test[1]
+
+    def train_laplaceNoise(self):
+        (trainX,trainY),(_,_)=mnist.load_data()
+        trainPos=np.random.randint(0,trainX.shape[0],1024)
+        trainX=trainX[trainPos]/127.5-1
+        trainY=tf.one_hot(indices=trainY[trainPos],depth=10,axis=1).numpy()
+
+        batchSize=64
+        stepsPerEpoch=trainX.shape[0]//batchSize
+
+        for epoch in range(5):
+            for step in range(stepsPerEpoch):
+                idx=np.random.randint(0,trainX.shape[0],batchSize)
+                with tf.GradientTape() as tape:
+                    predY=self.model(trainX[idx,:,:],training=True)
+                    loss=self.loss(trainY[idx,:],predY)
+                trainAbleVars=self.model.trainable_variables
+                grads=tape.gradient(loss,trainAbleVars) #在tf2.10.0中当loss极小时求导会在卷积核处大小失真报错
+                grads=[tf.clip_by_value(tf.add(x,tf.random.normal(shape=x.shape,mean=0.0,stddev=0.7,dtype=tf.float32)),-1,1) for x in grads]
+                self.model.optimizer.apply_gradients(zip(grads,trainAbleVars))
+                self.metric.update_state(trainY[idx,:],predY)
+        
+        return self.model.get_weights()
 
     def get_weights(self):
         return self.model.get_weights()
@@ -48,7 +75,7 @@ class LocalModel(object):
 class FederatedClient(object):
     def __init__(self, server_host, server_port):
         # 训练所用本地模型及轮数
-        self.local_model=None
+        self.local_model:LocalModel=None
         self.round_num=0
 
         # 生成公私钥对,用于模型权重加密
@@ -146,7 +173,7 @@ class FederatedClient(object):
             '''
             self.round_num=data['round_number']
             weights=self.pickle_string_to_obj(data['current_weights'])
-            cNum=data['client_num']
+            cNum=data['client_num'] 
 
             # 初始训练参数不需要解密
             # if data['round_number'] != 1:
@@ -159,7 +186,13 @@ class FederatedClient(object):
             if not self.isBad:
                 if self.method=='none':
                     self.userLog.log.info(f'开始训练,当前模型id为: {self.local_model.model_id}')
-                    my_weights,_,_ = self.local_model.train()
+                    my_weights = self.local_model.train()
+                elif self.method=='diffPri':
+                    self.userLog.log.info(f'开始训练,当前模型id为: {self.local_model.model_id}')
+                    my_weights=self.local_model.train_laplaceNoise()
+                    # my_weights = self.local_model.train()
+                    # for i in range(len(my_weights)):#TODO:使用梯度加噪代替权重加噪
+                    #     my_weights[i]=np.clip(my_weights[i]+np.random.laplace(0,0.03,my_weights[i].shape),-1,1)
             else:
                 if self.method=='gan':
                     self.userLog.log.info(f'开始攻击,当前模型id为: {self.local_model.model_id}')
