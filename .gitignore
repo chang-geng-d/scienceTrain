@@ -3,3 +3,4 @@ utils_t/
 gan_attack/images
 gan_attack/models
 test.py
+membership_test.py

@@ -16,6 +16,7 @@ from SM9.gmssl import sm9
 from logger import Logger
 
 from gan_attack.gan import GAN
+from membership_attack.mAtk_model import MATK_MODEL
 
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
@@ -100,6 +101,7 @@ class FederatedClient(object):
         self.method='none'
         # 攻击
         self.ganAttackModel=None
+        self.membershipModel=None
 
         # 防御
         # self.pubKey,self.priKey=paillier.generate_paillier_keypair()
@@ -190,14 +192,14 @@ class FederatedClient(object):
                 elif self.method=='diffPri':
                     self.userLog.log.info(f'开始训练,当前模型id为: {self.local_model.model_id}')
                     my_weights=self.local_model.train_laplaceNoise()
-                    # my_weights = self.local_model.train()
-                    # for i in range(len(my_weights)):#TODO:使用梯度加噪代替权重加噪
-                    #     my_weights[i]=np.clip(my_weights[i]+np.random.laplace(0,0.03,my_weights[i].shape),-1,1)
             else:
                 if self.method=='gan':
-                    self.userLog.log.info(f'开始攻击,当前模型id为: {self.local_model.model_id}')
+                    self.userLog.log.info(f'开始GAN攻击,当前模型id为: {self.local_model.model_id}')
                     self.gan_attack(self.round_num)
                     my_weights=self.local_model.get_weights()
+                elif self.method=='membership':
+                    self.userLog.log.info(f'开始更新成员推断攻击模型,当前模型id为:{self.local_model.model_id}')
+                    self.membership_attack(weights)
 
             for i in range(len(my_weights)):
                 my_weights[i]=np.array([x/cNum for x in my_weights[i]])
@@ -231,6 +233,13 @@ class FederatedClient(object):
         self.ganAttackModel.trainDiscriminator(20,1024)
         if cRound%25==0:
             self.ganAttackModel.sample_images(cRound)
+
+    def membership_attack(self,currWeight):
+        if self.local_model is None:
+            return
+        if self.membershipModel is None:
+            self.membershipModel=MATK_MODEL(self.local_model)
+        self.membershipModel.update_atk_model(currWeight)
 
     def run(self):
         self.sio.connect(f'http://{self.sHost}:{self.sPort}')

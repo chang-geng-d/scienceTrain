@@ -1,8 +1,8 @@
-# import pyperclip
+# import pyclip
 import math
 
 
-# pyperclip.copy
+# pyclip.copy
 
 
 def isPrime(num):

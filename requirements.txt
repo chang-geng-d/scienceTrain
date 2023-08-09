@@ -1,0 +1,12 @@
+Flask==2.2.2
+Flask_SocketIO==5.3.2
+keras==2.12.0
+matplotlib==3.5.1
+numpy==1.23.5
+opencv_contrib_python==4.6.0.66
+opencv_python==4.6.0.66
+opencv_python_headless==4.7.0.72
+pyclip==0.7.0
+scipy==1.8.0
+tensorflow==2.12.0
+tensorflow_intel==2.12.0

@@ -1,18 +1,21 @@
-from tensorflow.keras.utils import to_categorical
+from keras.utils import to_categorical
 import cv2 as cv
 import numpy as np
-from tensorflow.keras.models import Sequential, load_model
-from tensorflow.keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
+from keras.models import Sequential, load_model
+from keras.layers import Dense, Dropout, Flatten, Conv2D, MaxPooling2D
 import time
 import load_dataset
 
 import sys
 
-savedStdout = sys.stdout 
-print_log = open('log.txt',"w")
-sys.stdout = print_log
+# savedStdout = sys.stdout 
+# print_log = open('log.txt',"w")
+# sys.stdout = print_log
 
 def create_model():
+    '''
+    创建CNN模型并输出模型概要
+    '''
     model = Sequential()
     model.add(Conv2D(filters=32, kernel_size=(3, 3),
                      input_shape=(32, 32, 3),
@@ -56,6 +59,9 @@ def create_model():
 
 
 def initial_model():
+    '''
+    使用服务器训练集训练模型并保存至model_weights.h5中待其余函数调用
+    '''
     x_train, y_train, x_test, y_test = load_dataset.get_server_dataset()
     model = create_model()
     x_train = x_train.astype('float32')
@@ -79,6 +85,9 @@ def initial_model():
 
 
 def train_model(x_train, y_train, x_test, y_test):
+    '''
+    从model_weights.h5中加载训练好的服务器模型，并使用输入的参数数据集二次训练后返回模型权重
+    '''
     x_train = x_train.astype('float32')
     x_test = x_test.astype('float32')
     x_train /= 255
@@ -102,6 +111,9 @@ def train_model(x_train, y_train, x_test, y_test):
 
 
 def aggregation(weights_list):
+    '''
+    将输入的权重数组平均合并为一个权重
+    '''
     weights_aggregation = np.zeros(np.array(weights_list[0]).shape)
     for weights in weights_list:
         weights_aggregation = weights_aggregation + np.array(weights)
@@ -111,6 +123,9 @@ def aggregation(weights_list):
 
 
 def train_next(weights, x_train, y_train, x_test, y_test):
+    '''
+    以输入参数训练并评估一次未训练过的模型，返回训练后模型权重
+    '''
     x_train = x_train.astype('float32')
     x_test = x_test.astype('float32')
     x_train /= 255
@@ -135,6 +150,9 @@ def train_next(weights, x_train, y_train, x_test, y_test):
 
 
 def train_sgd(new_model, x, y, lr):
+    '''
+    训练5次模型，并返回训练前后的梯度差值的和与其本身
+    '''
     old_param = new_model.get_layer("conv2d_4").get_weights()
     old_param = np.array(old_param)
     new_model.fit(x, y, epochs=5, batch_size=32, verbose=2)
@@ -157,6 +175,9 @@ def train_sgd(new_model, x, y, lr):
 
 
 def get_input(weights):
+    '''
+    使用输入的权重训练1000次模型，并将其梯度差值的和与梯度差值本身构造为为10*100的矩阵返回
+    '''
     print("get input...")
     x_train, y_train = load_dataset.get_server_dataset_expend(200)
     x_train = x_train.astype('float32')
@@ -169,13 +190,12 @@ def get_input(weights):
     grad_list = []
     model = create_model()
     for j in range(100):
-
         sum_a = []
         grad = []
         for h in range(10):
-            model.set_weights(weights)
+            model.set_weights(weights)# 继承输入权重以初始化模型
             b = h * 1000 + 8 * j
-            grad_sum_a, grad_a = train_sgd(model, x_train[b:b + 128], y_train[b:b + 128], 0.001)
+            grad_sum_a, grad_a = train_sgd(model, x_train[b:b + 128], y_train[b:b + 128], 0.001)# 利用数据集的切分训练模型
             sum_a.append(grad_sum_a)
             grad.append(grad_a)
         sum_a = np.array(sum_a).reshape((10, 1))
@@ -187,6 +207,9 @@ def get_input(weights):
 
 
 def save(path, x_attack_train, y_attack_train):
+    '''
+    将输入的样本矩阵转存为图片
+    '''
     x_attack_train = np.array(x_attack_train)
     y_attack_train = np.array(y_attack_train)
     print(x_attack_train.shape, y_attack_train.shape)
@@ -195,6 +218,9 @@ def save(path, x_attack_train, y_attack_train):
 
 
 def save_data(data_path, temp_b, temp_n, n):
+    '''
+    对第n次训练，将两个输入矩阵相减产生输出结果，并创建保存输出结果的目录
+    '''
     x_a_n = []
     y_a_n = []
     for item_a, item_n in zip(temp_b, temp_n):
@@ -211,20 +237,26 @@ if __name__ == '__main__':
     t0 = time.time()
     initial_model()
     t1 = time.time()
+
     for m in range(10):
+        # 切分数据集并训练影子模型
         user = load_dataset.get_client_dataset_part_fake(m)
+
         w_list = []
-        for u in user:
+        for u in user:# 使用3个影子训练集训练服务器模型并将训练后权重保存至列表中
             w = train_model(u.x_train, u.y_train, u.x_test, u.y_test)
             w_list.append(w)
-        new_weights = aggregation(w_list)
-        g_be, g_list_be = get_input(new_weights)
+        new_weights = aggregation(w_list)# 相当于服务器端的FedAvg算法
+        g_be,_ = get_input(new_weights)
+
         w = train_next(new_weights, user[0].x_train, user[0].y_train, user[0].x_test, user[0].y_test)
-        g, g_list = get_input(w)
-        path_1 = "list"
+        g, _ = get_input(w)
+
+        # path_1 = "list"
         path_2 = "num"
-        # save_data(path_1, g_list_be, g_list, m)
         save_data(path_2, g_be, g, m)
+
+    # 输出时间
     t2 = time.time()
     ft = open(rf"time_train.txt", "a+")
     print(f"initial:{t1 - t0}s, train:{t2 - t1}s", file=ft)

@@ -1,8 +1,11 @@
-from tensorflow.keras.datasets import mnist
+from keras.datasets import mnist
 import numpy as np
 
 
-def split_mnist():
+def split_dataset():
+    '''
+    将源数据集中的每个样本按标签顺序排列重构,返回二维x*10数组(x长度不定)
+    '''
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
     x_train_sort = []
     y_train_sort = []
@@ -13,7 +16,7 @@ def split_mnist():
         y_tr = []
         x_te = []
         y_te = []
-        for j in range(len(x_train)):
+        for j in range(len(x_train)):# 遍历x_train，将第i类的样本加入相应数组中
             if y_train[j] == i:
                 x_tr.append(x_train[j])
                 y_tr.append(y_train[j])
@@ -39,7 +42,10 @@ def split_mnist():
 
 
 def get_server_dataset(num=200):
-    x_train, y_train, x_test, y_test = split_mnist()
+    '''
+    在每一类中取num个样本作为服务器数据集,返回的3、4参数与1、2参数相同
+    '''
+    x_train, y_train, x_test, y_test = split_dataset()
     x_server = []
     y_server = []
     for i in range(10):
@@ -53,7 +59,10 @@ def get_server_dataset(num=200):
 
 
 def get_server_dataset_expend(num=200):
-    x_train, y_train, x_test, y_test = split_mnist()
+    '''
+    与get_server_dataset相比，其返回值中相同样本重复了5次
+    '''
+    x_train, y_train, x_test, y_test = split_dataset()
     x_server = []
     y_server = []
     for i in range(10):
@@ -67,6 +76,9 @@ def get_server_dataset_expend(num=200):
 
 
 class client:
+    '''
+    客户端数据集类
+    '''
     def __init__(self, x_train, y_train, x_test, y_test):
         self.x_train = x_train
         self.y_train = y_train
@@ -75,18 +87,21 @@ class client:
 
 
 def get_client_dataset(server_num, num):
-    x_train, y_train, x_test, y_test = split_mnist()
+    '''
+    构建10个具有类别偏好的客户端训练集，返回长度为10的client类列表
+    '''
+    x_train, y_train, x_test, y_test = split_dataset()
     client_list = []
-    for c in range(10):
+    for c in range(10):# 构建10个客户端数据集
         x_client = []
         y_client = []
-        for i in range(10):
+        for i in range(10):# 在第c个客户端训练集中，有num个第c类样本及200个其他类别样本，以达成客户端偏好
             if i == c:
                 for j in range(num):
                     x_client.append(x_train[i][server_num + j])
                     y_client.append(y_train[i][server_num + j])
             else:
-                for j in range(300):
+                for j in range(200):
                     x_client.append(x_train[i][server_num + j])
                     y_client.append(y_train[i][server_num + j])
         x_client = np.array(x_client)
@@ -95,7 +110,7 @@ def get_client_dataset(server_num, num):
         x_client_test = []
         y_client_test = []
         for i in range(10):
-            for j in range(80):
+            for j in range(80):# 每个客户端按序截取各类的80个样本作为测试集
                 x_client_test.append(x_test[i][80 * c + j])
                 y_client_test.append(y_test[i][80 * c + j])
         x_client_test = np.array(x_client_test)
@@ -107,7 +122,10 @@ def get_client_dataset(server_num, num):
 
 
 def get_client_dataset_part(server_num, num, k):
-    x_train, y_train, x_test, y_test = split_mnist()
+    '''
+    构建3个客户端训练集，其中0号训练集k类别有num个样本，其它类别有200个样本；余下训练集没有k类别样本，其他类别有500个样本
+    '''
+    x_train, y_train, x_test, y_test = split_dataset()
     client_list = []
     for n in range(3):
         x_client = []
@@ -119,7 +137,7 @@ def get_client_dataset_part(server_num, num, k):
                         x_client.append(x_train[i][server_num + j])
                         y_client.append(y_train[i][server_num + j])
                 else:
-                    for j in range(300):
+                    for j in range(200):
                         x_client.append(x_train[i][server_num + j])
                         y_client.append(y_train[i][server_num + j])
         else:
@@ -127,7 +145,7 @@ def get_client_dataset_part(server_num, num, k):
                 if i == k:
                     continue
                 else:
-                    for j in range(600):
+                    for j in range(500):
                         x_client.append(x_train[i][server_num + j])
                         y_client.append(y_train[i][server_num + j])
         x_client = np.array(x_client)
@@ -148,6 +166,9 @@ def get_client_dataset_part(server_num, num, k):
 
 
 def get_client_dataset_fake():
+    '''
+    基于服务器数据集构建10个客户端的带偏好影子数据集，第i个客户端的第i类有3000个样本，其余类别样本数均为200，训练集与测试集相同
+    '''
     x_train, y_train, _, _ = get_server_dataset(200)
     client_list_fake = []
     for s in range(10):
@@ -159,7 +180,7 @@ def get_client_dataset_fake():
                     x_client_fake.append(x_train[i * 200 + j % 200])
                     y_client_fake.append(y_train[i * 200 + j % 200])
             else:
-                for j in range(300):
+                for j in range(200):
                     x_client_fake.append(x_train[i * 200 + j % 200])
                     y_client_fake.append(y_train[i * 200 + j % 200])
         x_client_fake = np.array(x_client_fake)
@@ -170,6 +191,9 @@ def get_client_dataset_fake():
 
 
 def get_client_dataset_part_fake(k):
+    '''
+    构建3个客户端训练集，其中0号训练集k类别有3000个样本，其它类别有200个样本；余下训练集没有k类别样本，其他类别有500个样本
+    '''
     x_train, y_train, _, _ = get_server_dataset(200)
     client_list_fake = []
     for n in range(3):
@@ -182,7 +206,7 @@ def get_client_dataset_part_fake(k):
                         x_client_fake.append(x_train[i * 200 + j % 200])
                         y_client_fake.append(y_train[i * 200 + j % 200])
                 else:
-                    for j in range(300):
+                    for j in range(200):
                         x_client_fake.append(x_train[i * 200 + j % 200])
                         y_client_fake.append(y_train[i * 200 + j % 200])
         else:
@@ -190,7 +214,7 @@ def get_client_dataset_part_fake(k):
                 if i == k:
                     continue
                 else:
-                    for j in range(600):
+                    for j in range(500):
                         x_client_fake.append(x_train[i * 200 + j % 200])
                         y_client_fake.append(y_train[i * 200 + j % 200])
         x_client_fake = np.array(x_client_fake)
@@ -201,7 +225,10 @@ def get_client_dataset_part_fake(k):
 
 
 def get_client_dataset_all(server_num, num, k):
-    x_train, y_train, x_test, y_test = split_mnist()
+    '''
+    这个没引用，不看
+    '''
+    x_train, y_train, x_test, y_test = split_dataset()
     client_list = []
     for n in range(10):
         x_client = []
@@ -213,7 +240,7 @@ def get_client_dataset_all(server_num, num, k):
                         x_client.append(x_train[i][server_num + j])
                         y_client.append(y_train[i][server_num + j])
                 else:
-                    for j in range(300):
+                    for j in range(00):
                         x_client.append(x_train[i][server_num + j])
                         y_client.append(y_train[i][server_num + j])
         elif n == 1 or n == 2:
@@ -247,7 +274,7 @@ def get_client_dataset_all(server_num, num, k):
 
 
 if __name__ == '__main__':
-    # split_mnist()
+    split_dataset()
 
     # x_train_server, y_train_server, _, _ = get_server_dataset(200)
 
@@ -266,7 +293,7 @@ if __name__ == '__main__':
     #     for item in user_p:
     #         print(f"x_train:{item.x_train.shape}, x_test:{item.x_test.shape}")
 
-    for m in range(10):
-        user_p_fake = get_client_dataset_part_fake(m)
-        for item in user_p_fake:
-            print(f"x_train:{item.x_train.shape}, x_test:{item.x_test.shape}")
+    # for m in range(10):
+    #     user_p_fake = get_client_dataset_part_fake(m)
+    #     for item in user_p_fake:
+    #         print(f"x_train:{item.x_train.shape}, x_test:{item.x_test.shape}")

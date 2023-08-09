@@ -265,7 +265,8 @@ class FLServer(threading.Thread):
     def draw_accImg(self):
         plt.figure()
         plt.plot(range(1,50),self.evaluatedAcc)
-        plt.savefig('static/images/evaluate_img/acc_0.7.png')
+        plt.title("ACC curve - variance 1")
+        plt.savefig('static/images/evaluate_img/acc_1.png')
 
 # if __name__ == '__main__':
 #     server=FLServer('127.0.0.1',9000)
