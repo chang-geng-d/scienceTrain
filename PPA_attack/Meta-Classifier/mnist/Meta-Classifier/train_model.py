@@ -56,7 +56,7 @@ def initial_model():
 
 def train_model(x_train, y_train, x_test, y_test):
     '''
-    从model_weights.h5中加载训练好的服务器模型，并使用输入的参数数据集二次训练后返回模型权重
+    从model_weights.h5中加载训练好的服务器模型，并使用输入的参数数据集二次训练后返回模型权重(相当于训练了本地模型)
     '''
     x_train = x_train.astype('float32')
     x_test = x_test.astype('float32')
@@ -82,7 +82,7 @@ def train_model(x_train, y_train, x_test, y_test):
 
 def aggregation(weights_list):
     '''
-    将输入的权重数组平均合并为一个权重
+    将输入的权重数组平均合并为一个权重(相当于FedAvg算法)
     '''
     weights_aggregation = np.zeros(np.array(weights_list[0]).shape)
     for weights in weights_list:
@@ -121,7 +121,7 @@ def train_next(weights, x_train, y_train, x_test, y_test):
 
 def train_sgd(new_model, x, y, lr):
     '''
-    训练5次模型，并返回训练前后的梯度差值的和与其本身
+    训练5次模型，并返回训练前后的参数差值的和与其本身
     '''
     old_param = new_model.get_layer("conv2d_2").get_weights()
     old_param = np.array(old_param)
@@ -162,7 +162,7 @@ def get_input(weights):
     for j in range(100):
         sum_a = []
         grad = []
-        for h in range(10):
+        for h in range(10): 
             model.set_weights(weights)# 继承输入权重以初始化模型
             b = h * 1000 + 8 * j
             grad_sum_a, grad_a = train_sgd(model, x_train[b:b + 128], y_train[b:b + 128], 0.01)# 利用数据集的切分训练模型
@@ -189,7 +189,7 @@ def save(path, x_attack_train, y_attack_train):
 
 def save_data(data_path, temp_b, temp_n, n):
     '''
-    对第n次训练，将两个输入矩阵相减产生输出结果，并创建保存输出结果的目录
+    对第n次训练，将两个输入矩阵相减产生输出结果(模型敏感度)，并创建保存输出结果的目录
     '''
     x_a_n = []
     y_a_n = []
@@ -217,7 +217,7 @@ if __name__ == '__main__':
             w = train_model(u.x_train, u.y_train, u.x_test, u.y_test)
             w_list.append(w)
         new_weights = aggregation(w_list)# 相当于服务器端的FedAvg算法
-        g_be,_ = get_input(new_weights)
+        g_be,_ = get_input(new_weights) 
 
         w = train_next(new_weights, user[0].x_train, user[0].y_train, user[0].x_test, user[0].y_test)
         g, _ = get_input(w)

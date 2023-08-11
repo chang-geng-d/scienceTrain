@@ -5,7 +5,6 @@ import codecs
 import numpy as np
 import tensorflow as tf
 from keras import losses
-from keras import metrics
 from keras import optimizers
 from keras.datasets import mnist
 from keras.models import model_from_json
@@ -17,6 +16,7 @@ from logger import Logger
 
 from gan_attack.gan import GAN
 from membership_attack.mAtk_model import MATK_MODEL
+from PPA_attack.pAtk_model import PATK_MODEL
 
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 
@@ -25,7 +25,6 @@ class LocalModel(object):
         self.model_id=model_id
         self.model=model_from_json(model_config)
         self.loss=losses.binary_crossentropy
-        self.metric=metrics.Accuracy()
         self.model.compile(optimizer=optimizers.Adam(0.0002, 0.5),loss=self.loss,metrics=['accuracy'])
 
     def train(self):
@@ -102,6 +101,7 @@ class FederatedClient(object):
         # 攻击
         self.ganAttackModel=None
         self.membershipModel=None
+        self.ppaAtkModel=None
 
         # 防御
         # self.pubKey,self.priKey=paillier.generate_paillier_keypair()
@@ -200,6 +200,9 @@ class FederatedClient(object):
                 elif self.method=='membership':
                     self.userLog.log.info(f'开始更新成员推断攻击模型,当前模型id为:{self.local_model.model_id}')
                     self.membership_attack(weights)
+                elif self.method=='PPA':
+                    self.userLog.log.info(f'开始更新PPA攻击模型,当前模型id为:{self.local_model.model_id}')
+                    self.ppa_attack(weights)
 
             for i in range(len(my_weights)):
                 my_weights[i]=np.array([x/cNum for x in my_weights[i]])
@@ -240,6 +243,13 @@ class FederatedClient(object):
         if self.membershipModel is None:
             self.membershipModel=MATK_MODEL(self.local_model)
         self.membershipModel.update_atk_model(currWeight)
+
+    def ppa_attack(self,currWeight):
+        if not self.local_model:
+            return
+        if not self.ppaAtkModel:
+            self.ppaAtkModel=PATK_MODEL(self.local_model)
+        self.ppaAtkModel.update_atkModel(currWeight)
 
     def run(self):
         self.sio.connect(f'http://{self.sHost}:{self.sPort}')

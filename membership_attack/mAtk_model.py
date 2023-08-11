@@ -11,24 +11,24 @@ import matplotlib.pyplot as plt
 plt.rcParams['font.sans-serif'] = ['SimHei']
 plt.rcParams['axes.unicode_minus'] = False
 
-# def build_model():
-#         model = Sequential()
-#         model.add(Convolution2D(32, (5, 5), input_shape=(28,28,1)))
-#         model.add(Activation('relu'))
-#         model.add(MaxPooling2D(pool_size=(2, 2)))
-#         model.add(Convolution2D(32, (5, 5)))
-#         model.add(Activation('relu'))
-#         model.add(MaxPooling2D(pool_size=(2, 2)))
-#         model.add(Convolution2D(64, (3, 3)))
-#         model.add(Activation('relu'))
-#         model.add(MaxPooling2D(pool_size=(2, 2)))
-#         model.add(Flatten())
-#         model.add(Dense(64))
-#         model.add(Activation('relu'))
-#         model.add(Dropout(0.3))
-#         model.add(Dense(10))
-#         model.add(Activation('softmax'))
-#         return model
+def build_model():
+        model = Sequential()
+        model.add(Convolution2D(32, (5, 5), input_shape=(28,28,1)))
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Convolution2D(32, (5, 5)))
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Convolution2D(64, (3, 3)))
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Flatten())
+        model.add(Dense(64))
+        model.add(Activation('relu'))
+        model.add(Dropout(0.3))
+        model.add(Dense(10))
+        model.add(Activation('softmax'))
+        return model
 
 class MATK_MODEL:
     def __init__(self,currModel:Sequential):
@@ -192,13 +192,14 @@ class MATK_MODEL:
         plt.savefig('static/images/membership_imgs/grads.png')
         plt.close()
 
-# if __name__=='__main__':
+if __name__=='__main__':
     # (Xtrain,Ytrain),(Xtest,Ytest)=mnist.load_data()
     # print(Xtrain.shape)
     # print(Ytrain.shape)
     # print(max(np.unique(Ytrain)))
 
-    # Tmodel=build_model()
+    Tmodel=build_model()
+    [print(x.shape) for x in Tmodel.get_weights()]
     # model=MATK_MODEL(Tmodel)
     # model.update_atk_model()
     # tXtrain,tYtrain=model.sample_atk_data()

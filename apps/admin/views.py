@@ -107,7 +107,7 @@ def fl_server(method):
 
 @bp.route('/fl_client/<method>')
 def fl_client(method):
-    if method in ['none','gan','diffPri','membership']:
+    if method in ['none','gan','diffPri','membership','PPA']:
         global flClients
         tClie=flClie('127.0.0.1',9000)
         uName=request.cookies.get('uName')
@@ -120,9 +120,9 @@ def fl_client(method):
     # elif method=='membership':
         # p = subprocess.Popen('python3 ./membership_attack/membership.py', shell=True)
         # return render_template('attack.html')
-    elif method=='PPA':
+    # elif method=='PPA':
         # p = subprocess.Popen('python3 ./PPA_attack/Meta-Classifier/cifar10/Meta-Classifier/train_model.py', shell=True)
-        return render_template('ppa.html')
+        # return render_template('ppa.html')
     elif method=='homomorphic':
         # p = subprocess.Popen('python3 ./Homomorphic_Encryption/Paillier/encrypt.py', shell=True)
         return render_template('homomorphic.html')

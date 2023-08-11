@@ -1,9 +1,13 @@
 ## 更新日志
-### <font color="red">2023/8/9 更新</font>
+### <font color="red">2023/8/11 更新</font>
++ 重构PPA攻击模块并合并至项目
++ <font color="red">只经过有限的模块测试，具体性能与兼容性仍不明确，但能跑</font>
+
+### <font color="yellow">2023/8/9 更新</font>
 + 重构成员推理攻击模块并合并至项目
 + <font color="red">只经过有限的模块测试，具体性能与兼容性仍不明确，但能跑</font>
 
-### <font color="yellow">2023/4/25  更新</font>
+### <font>2023/4/25  更新</font>
 + 完成对梯度的差分隐私加噪，并进行了集成测试
 + 对差分隐私对正常训练的影响做评估，结果为static/images/evaluate_img/acc_xx.png系列图片
 + <font color="yellow">将余下的接口整合为标准化形态，但仍无用，建议只使用“差分隐私防御”与“GAN攻击”以作为实际运行时例子</font>
